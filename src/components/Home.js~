@@ -1,0 +1,77 @@
+import React, {useState} from 'react';
+import {Link} from "react-router-dom";
+import {BaseUrl} from "../constants";
+import axios from "axios";
+
+function Home(props) {
+
+    const [username, setUsername] = useState('');
+    const [email, setEmail] = useState('');
+    const [password, setPassword] = useState('');
+    const [error, setError] = useState('');
+
+    function usernameChangeHandler(event) {
+        setUsername(event.target.value);
+    }
+    function emailChangeHandler(event) {
+        setEmail(event.target.value);
+    }
+    function passwordChangeHandler(event) {
+        setPassword(event.target.value);
+    }
+    function errorChangeHandler(event) {
+        setError(event.target.value);
+    }
+
+    function register(): void {
+        if (username === "" || email === "" || password === "") {
+            error("Please fill in all fields");
+        }
+        else{
+
+            let data = JSON.stringify({
+                "username": username,
+                "email": email,
+                "password": password
+            });
+
+            let config = {
+                method: 'post',
+                maxBodyLength: Infinity,
+                url: BaseUrl+'/api/register/',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                data : data
+            };
+
+            axios.request(config)
+                .then((response) => {
+                    console.log(JSON.stringify(response.data));
+                    error("Registration successful");
+                })
+                .catch((error) => {
+                    console.log(error);
+                    error(error.response.data);
+                });
+
+        }
+    }
+
+    return (
+        <div>
+            <nav>
+                <ul>
+                    <li>
+                        <Link to="/">Home</Link>
+                    </li>
+                    <li>
+                        <Link to="/register">Register</Link>
+                    </li>
+                </ul>
+            </nav>
+        </div>
+    );
+}
+
+export default Home;
