@@ -1,67 +1,155 @@
-import React, {useState} from 'react';
-import Home from "./Home";
-import {BaseUrl} from "../constants";
-import axios from "axios";
+import React, { useState } from 'react';
+import axios from 'axios';
+import { Link, useNavigate } from 'react-router-dom';
+import { BaseUrl } from '../constants';
+import '../styles/GlobalStyles.css';
 
-function Register(props) {
-    const [username, setUsername] = useState("");
-    const [email, setEmail] = useState("");
-    const [password, setPassword] = useState("");
-    const [Err, setErr] = useState("")
+function Register() {
+    const [formData, setFormData] = useState({
+        username: '',
+        email: '',
+        password: '',
+        password2: ''
+    });
+    const [error, setError] = useState('');
+    const [isLoading, setIsLoading] = useState(false);
+    const [success, setSuccess] = useState(false);
+    const navigate = useNavigate();
 
-    function usernameChangeHandler(event) {
-        setUsername(event.target.value);
-    }
+    const { username, email, password, password2 } = formData;
 
-    function emailChangeHandler(event) {
-        setEmail(event.target.value);
-    }
+    const handleChange = (e) => {
+        setFormData({ ...formData, [e.target.name]: e.target.value });
+    };
 
-    function passwordChangeHandler(event) {
-        setPassword(event.target.value);
-    }
+    const handleSubmit = async (e) => {
+        e.preventDefault();
+        setIsLoading(true);
+        setError('');
+        setSuccess(false);
 
-    function register() {
-        if (username === "" || email === "" || password === "") {
-            setErr("Please enter all fields");
-        } else {
-            let data = JSON.stringify({
-                "username": username,
-                "email": email,
-                "password": password
-            });
-
-            let config = {
-                method: 'post',
-                maxBodyLength: Infinity,
-                url: BaseUrl+'/api/register/',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                data: data
-            };
-
-            axios.request(config)
-                .then((response) => {
-                    console.log(JSON.stringify(response.data));
-                    setErr("Register success");
-                })
-                .catch((error) => {
-                    console.log(error);
-                    setErr(error.response.data);
-                });
+        // Password validation
+        if (password !== password2) {
+            setError('Passwords do not match');
+            setIsLoading(false);
+            return;
         }
-    }
+
+        try {
+            const response = await axios.post(`${BaseUrl}/api/register/`, {
+                username,
+                email,
+                password
+            });
+            
+            setIsLoading(false);
+            setSuccess(true);
+            
+            // Delay navigation slightly to show success message
+            setTimeout(() => {
+                navigate('/login');
+            }, 1500);
+        } catch (err) {
+            setIsLoading(false);
+            if (err.response && err.response.data) {
+                // Handle object error response
+                if (typeof err.response.data === 'object') {
+                    const errorMessage = Object.values(err.response.data).flat().join(", ");
+                    setError(errorMessage || "Registration failed.");
+                } else {
+                    setError(err.response.data || "Registration failed.");
+                }
+            } else {
+                setError("Registration failed. Please check your connection and try again.");
+            }
+        }
+    };
 
     return (
-        <div>
-            <Home/>
-            <h1>Register</h1>
-            <p>Username: <input type="text" onChange={usernameChangeHandler} /></p>
-            <p>Email: <input type="email" onChange={emailChangeHandler} /></p>
-            <p>Password: <input type="password" onChange={passwordChangeHandler} /></p>
-            <button onClick={register}>Register</button>
-            <p>{Err}</p>
+        <div className="auth-container">
+            <div className="auth-card">
+                <h2 className="auth-title">Create an Account</h2>
+                
+                {error && (
+                    <div className="alert alert-danger">{error}</div>
+                )}
+                
+                {success && (
+                    <div className="alert alert-success">
+                        Registration successful! Redirecting to login...
+                    </div>
+                )}
+                
+                <form className="auth-form" onSubmit={handleSubmit}>
+                    <div className="form-group">
+                        <label htmlFor="username">Username</label>
+                        <input
+                            type="text"
+                            className="form-control"
+                            id="username"
+                            name="username"
+                            placeholder="Choose a username"
+                            value={username}
+                            onChange={handleChange}
+                            required
+                        />
+                    </div>
+                    
+                    <div className="form-group">
+                        <label htmlFor="email">Email</label>
+                        <input
+                            type="email"
+                            className="form-control"
+                            id="email"
+                            name="email"
+                            placeholder="Enter your email"
+                            value={email}
+                            onChange={handleChange}
+                            required
+                        />
+                    </div>
+                    
+                    <div className="form-group">
+                        <label htmlFor="password">Password</label>
+                        <input
+                            type="password"
+                            className="form-control"
+                            id="password"
+                            name="password"
+                            placeholder="Create a password"
+                            value={password}
+                            onChange={handleChange}
+                            required
+                        />
+                    </div>
+                    
+                    <div className="form-group">
+                        <label htmlFor="password2">Confirm Password</label>
+                        <input
+                            type="password"
+                            className="form-control"
+                            id="password2"
+                            name="password2"
+                            placeholder="Confirm your password"
+                            value={password2}
+                            onChange={handleChange}
+                            required
+                        />
+                    </div>
+                    
+                    <button 
+                        type="submit" 
+                        className="btn" 
+                        disabled={isLoading || success}
+                    >
+                        {isLoading ? "Registering..." : "Register"}
+                    </button>
+                </form>
+                
+                <div className="auth-links">
+                    <p>Already have an account? <Link to="/login">Login here</Link></p>
+                </div>
+            </div>
         </div>
     );
 }

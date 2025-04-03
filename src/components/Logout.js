@@ -1,67 +1,77 @@
-import React, {useEffect, useState} from 'react';
+import React, { useEffect, useState } from 'react';
 import axios from "axios";
-import {BaseUrl} from "../constants";
+import { useNavigate } from 'react-router-dom';
+import { BaseUrl } from "../constants";
+import '../styles/GlobalStyles.css';
 
-function Logout(props) {
-    const [token, setToken] = useState("")
-    const [Err, setErr] = useState("")
+function Logout() {
+    const [error, setError] = useState("");
+    const [isLoading, setIsLoading] = useState(false);
+    const navigate = useNavigate();
+    const token = localStorage.getItem("Token");
 
     useEffect(() => {
-        setToken(localStorage.getItem("Token"));
-    }, [token]);
+        // If no token, redirect to login immediately
+        if (!token) {
+            navigate('/login');
+        }
+    }, [token, navigate]);
 
-    function logout() {
-        let data = '';
+    const handleLogout = async () => {
+        setIsLoading(true);
+        setError("");
 
-        let config = {
-            method: 'post',
-            maxBodyLength: Infinity,
-            url: BaseUrl+'/api/logout/',
-            headers: {
-                'Authorization': 'Token ' + token
-            },
-            data: data
-        };
-
-        axios.request(config)
-            .then((response) => {
-                console.log(JSON.stringify(response.data));
-                localStorage.removeItem("Token");
-                window.location.href = "/login";
-            })
-            .catch((error) => {
-                console.log(error);
-                // Handle the error response properly
-                if (error.response && error.response.data) {
-                    // If it's an object with error messages
-                    if (typeof error.response.data === 'object') {
-                        // Check if there's a detail message
-                        if (error.response.data.detail) {
-                            setErr(error.response.data.detail);
-                        } else {
-                            // Extract all error messages from the object
-                            const errorMessages = Object.entries(error.response.data)
-                                .map(([field, message]) => `${field}: ${message}`)
-                                .join(', ');
-                            setErr(errorMessages);
-                        }
-                    } else {
-                        // If it's already a string, use it directly
-                        setErr(error.response.data);
-                    }
-                } else {
-                    // Fallback error message
-                    setErr("Logout failed. Please try again.");
+        try {
+            await axios.post(`${BaseUrl}/api/logout/`, null, {
+                headers: {
+                    'Authorization': `Bearer ${token}`
                 }
             });
-
-    }
+            
+            // Clear token and redirect to login
+            localStorage.removeItem("Token");
+            localStorage.removeItem("user_id");
+            setIsLoading(false);
+            navigate('/login');
+        } catch (err) {
+            setIsLoading(false);
+            if (err.response && err.response.data) {
+                // Handle object error response
+                if (typeof err.response.data === 'object') {
+                    if (err.response.data.detail) {
+                        setError(err.response.data.detail);
+                    } else {
+                        const errorMessage = Object.values(err.response.data).flat().join(", ");
+                        setError(errorMessage || "Logout failed. Please try again.");
+                    }
+                } else {
+                    setError(err.response.data || "Logout failed. Please try again.");
+                }
+            } else {
+                setError("Logout failed. Please check your connection and try again.");
+            }
+        }
+    };
 
     return (
-        <div>
-            <h1>Logout</h1>
-            <button onClick={logout}>Logout</button>
-            <p>{Err}</p>
+        <div className="auth-container">
+            <div className="auth-card">
+                <h2 className="auth-title">Logout</h2>
+                
+                {error && (
+                    <div className="alert alert-danger">{error}</div>
+                )}
+                
+                <p>Are you sure you want to logout?</p>
+                
+                <button 
+                    onClick={handleLogout} 
+                    className="btn"
+                    disabled={isLoading}
+                >
+                    {isLoading ? "Logging out..." : "Logout"}
+                </button>
+            </div>
         </div>
     );
 }
