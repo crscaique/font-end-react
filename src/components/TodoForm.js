@@ -1,15 +1,16 @@
 import React, { useState } from 'react';
 import axios from 'axios';
+import { BaseUrl } from '../constants';
 
-const NoteForm = () => {
+const TodoForm = ({ onNoteCreated }) => {
     const [title, setTitle] = useState('');
     const [content, setContent] = useState('');
 
     const handleSubmit = async (e) => {
         e.preventDefault();
         try {
-            const token = localStorage.getItem('token');
-            await axios.post('http://localhost:8000/notes/create/', { title, content }, {
+            const token = localStorage.getItem('Token');
+            const response = await axios.post(`${BaseUrl}/api/notes/create/`, { title, content }, {
                 headers: {
                     'Authorization': `Token ${token}`
                 }
@@ -17,7 +18,13 @@ const NoteForm = () => {
             alert('Note created successfully');
             setTitle('');
             setContent('');
+            
+            // Call the callback with the new note if provided
+            if (onNoteCreated) {
+                onNoteCreated(response.data);
+            }
         } catch (error) {
+            console.error('Error creating note:', error);
             alert('Failed to create note');
         }
     };
@@ -31,4 +38,4 @@ const NoteForm = () => {
     );
 };
 
-export default NoteForm;
+export default TodoForm;

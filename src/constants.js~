@@ -1,1 +1,1 @@
-export const BaseUrl = 'https://api.themoviedb.org/3/';
+export const BaseUrl = 'https://back-end-django-project.vercel.app/';

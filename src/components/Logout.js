@@ -1,4 +1,3 @@
-
 import React, {useEffect, useState} from 'react';
 import axios from "axios";
 import {BaseUrl} from "../constants";
@@ -32,7 +31,28 @@ function Logout(props) {
             })
             .catch((error) => {
                 console.log(error);
-                setErr(error.response.data);
+                // Handle the error response properly
+                if (error.response && error.response.data) {
+                    // If it's an object with error messages
+                    if (typeof error.response.data === 'object') {
+                        // Check if there's a detail message
+                        if (error.response.data.detail) {
+                            setErr(error.response.data.detail);
+                        } else {
+                            // Extract all error messages from the object
+                            const errorMessages = Object.entries(error.response.data)
+                                .map(([field, message]) => `${field}: ${message}`)
+                                .join(', ');
+                            setErr(errorMessages);
+                        }
+                    } else {
+                        // If it's already a string, use it directly
+                        setErr(error.response.data);
+                    }
+                } else {
+                    // Fallback error message
+                    setErr("Logout failed. Please try again.");
+                }
             });
 
     }
