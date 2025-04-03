@@ -36,7 +36,8 @@ function Register() {
         }
 
         try {
-            const response = await axios.post(`${BaseUrl}/api/register/`, {
+            // Using axios but not storing the response since we don't need it
+            await axios.post(`${BaseUrl}/api/register/`, {
                 username,
                 email,
                 password

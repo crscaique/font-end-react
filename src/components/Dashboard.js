@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Link, Navigate } from 'react-router-dom';
 import axios from 'axios';
 import { BaseUrl } from '../constants';
@@ -12,7 +12,7 @@ function Dashboard() {
     const [error, setError] = useState('');
     const token = localStorage.getItem('Token');
 
-    const fetchNotes = async () => {
+    const fetchNotes = useCallback(async () => {
         try {
             const response = await axios.get(`${BaseUrl}/api/`, {
                 headers: {
@@ -28,12 +28,12 @@ function Dashboard() {
             }
             setError('Failed to fetch notes');
         }
-    };
+    }, [token]);
 
     useEffect(() => {
         if (!token) return;
         fetchNotes();
-    }, [token]);
+    }, [token, fetchNotes]);
 
     const handleNoteCreated = (newNote) => {
         setNotes([...notes, newNote]);
