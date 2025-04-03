@@ -13,9 +13,9 @@ const EditTodoForm = () => {
         const fetchTodo = async () => {
             try {
                 const token = localStorage.getItem('Token');
-                const response = await axios.get(`${BaseUrl}/api/todos/${id}/`, {
+                const response = await axios.get(`${BaseUrl}/api/${id}/`, {
                     headers: {
-                        'Authorization': `Token ${token}`
+                        'Authorization': `Bearer ${token}`
                     }
                 });
                 setTitle(response.data.title);
@@ -33,9 +33,9 @@ const EditTodoForm = () => {
         e.preventDefault();
         try {
             const token = localStorage.getItem('Token');
-            await axios.put(`${BaseUrl}/api/todos/update/${id}/`, { title, content }, {
+            await axios.put(`${BaseUrl}/api/update/${id}/`, { title, content }, {
                 headers: {
-                    'Authorization': `Token ${token}`
+                    'Authorization': `Bearer ${token}`
                 }
             });
             alert('Todo updated successfully');

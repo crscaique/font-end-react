@@ -1,102 +1,94 @@
 import React, { useState, useEffect } from 'react';
-import { Navigate } from 'react-router-dom';
+import { Link, Navigate } from 'react-router-dom';
 import axios from 'axios';
-import TodoForm from './TodoForm';
-import DeleteNoteButton from './Deletenote';
 import { BaseUrl } from '../constants';
-import { Link } from 'react-router-dom';
+import TodoForm from './TodoForm';
+import Deletenote from './Deletenote';
+import '../styles/GlobalStyles.css';
 
 function Dashboard() {
     const [notes, setNotes] = useState([]);
-    const [isLoading, setIsLoading] = useState(true);
-    const [authenticated, setAuthenticated] = useState(true);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState('');
+    const token = localStorage.getItem('Token');
+
+    const fetchNotes = async () => {
+        try {
+            const response = await axios.get(`${BaseUrl}/api/`, {
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+            setNotes(response.data);
+            setLoading(false);
+        } catch (err) {
+            setLoading(false);
+            if (err.response && err.response.status === 401) {
+                localStorage.removeItem('Token');
+            }
+            setError('Failed to fetch notes');
+        }
+    };
 
     useEffect(() => {
-        // Check if user is authenticated
-        const token = localStorage.getItem('Token');
-        if (!token) {
-            setAuthenticated(false);
-            return;
-        }
-
-        // Fetch notes
-        const fetchNotes = async () => {
-            try {
-                const response = await axios.get(`${BaseUrl}/api/notes/`, {
-                    headers: {
-                        'Authorization': `Token ${token}`
-                    }
-                });
-                setNotes(response.data);
-                setIsLoading(false);
-            } catch (error) {
-                console.error('Error fetching notes:', error);
-                setIsLoading(false);
-                // If unauthorized, redirect to login
-                if (error.response && error.response.status === 401) {
-                    localStorage.removeItem('Token');
-                    setAuthenticated(false);
-                }
-            }
-        };
-
+        if (!token) return;
         fetchNotes();
-    }, []);
+    }, [token]);
 
-    // Handle successful note creation
     const handleNoteCreated = (newNote) => {
         setNotes([...notes, newNote]);
     };
 
-    // Handle successful note deletion
-    const handleNoteDeleted = (deletedId) => {
-        setNotes(notes.filter(note => note.id !== deletedId));
+    const handleDeleteNote = (id) => {
+        setNotes(notes.filter(note => note.id !== id));
     };
 
-    // Redirect if not authenticated
-    if (!authenticated) {
+    if (!token) {
         return <Navigate to="/login" />;
     }
 
     return (
         <div className="dashboard">
-            <h1>Your Notes Dashboard</h1>
-            
-            <div className="nav-links">
-                <Link to="/logout">Logout</Link>
+            <div className="dashboard-header">
+                <h1 className="dashboard-title">My Notes</h1>
+                
             </div>
-            
-            <div className="note-form-container">
-                <h2>Create New Note</h2>
+
+            <div className="todo-form-container">
+                <h2 className="todo-form-title">Create New Note</h2>
                 <TodoForm onNoteCreated={handleNoteCreated} />
             </div>
-            
-            <div className="notes-list">
-                <h2>Your Notes</h2>
-                {isLoading ? (
+
+            {loading ? (
+                <div className="loading-container">
                     <p>Loading notes...</p>
-                ) : notes.length === 0 ? (
-                    <p>No notes found. Create one above!</p>
-                ) : (
-                    <ul>
-                        {notes.map(note => (
-                            <li key={note.id} className="note-item">
+                </div>
+            ) : error ? (
+                <div className="error-container">
+                    <p>{error}</p>
+                </div>
+            ) : notes.length === 0 ? (
+                <div className="empty-state-container">
+                    <div className="card">
+                        <p>No notes found. Create your first note above!</p>
+                    </div>
+                </div>
+            ) : (
+                <div className="notes-grid">
+                    {notes.map(note => (
+                        <div key={note.id} className="card note-card">
+                            <div className="note-content">
                                 <h3>{note.title}</h3>
                                 <p>{note.content}</p>
-                                <div className="note-actions">
-                                    <Link to={`/edit-note/${note.id}`}>
-                                        <button>Edit</button>
-                                    </Link>
-                                    <DeleteNoteButton 
-                                        id={note.id} 
-                                        onDelete={handleNoteDeleted} 
-                                    />
-                                </div>
-                            </li>
-                        ))}
-                    </ul>
-                )}
-            </div>
+                            </div>
+                            <div className="note-actions">
+                                <Link to={`/edit-note/${note.id}`} className="btn">Edit</Link>
+                                <Deletenote id={note.id} onDelete={handleDeleteNote} />
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            )}
         </div>
     );
 }

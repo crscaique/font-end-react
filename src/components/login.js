@@ -1,80 +1,106 @@
-import React, {useEffect, useState} from 'react';
-import {BaseUrl} from "../constants";
+import { useState, useEffect } from "react";
 import axios from "axios";
+import { useNavigate, Link } from "react-router-dom";
+import { BaseUrl } from "../constants";
+import '../styles/GlobalStyles.css';
 
 function Login(props) {
     const [username, setUsername] = useState("");
     const [password, setPassword] = useState("");
-    const [Err, setErr] = useState("")
+    const [error, setError] = useState("");
+    const [isLoading, setIsLoading] = useState(false);
+    const navigate = useNavigate();
 
     useEffect(() => {
+        // Check if user is already logged in
         if (localStorage.getItem("Token") !== null) {
-            window.location.href = "/dashboard";
+            // Use navigate instead of window.location for consistent routing
+            navigate("/dashboard");
         }
-    }, []);
+    }, [navigate]);
 
-    function usernameChangeHandler(event) {
-        setUsername(event.target.value);
-    }
+    const handleSubmit = async (e) => {
+        e.preventDefault();
+        setIsLoading(true);
+        setError("");
 
-    function passwordChangeHandler(event) {
-        setPassword(event.target.value);
-    }
-
-    function login() {
-        let data = JSON.stringify({
-            "username": username,
-            "password": password
-        });
-
-        let config = {
-            method: 'post',
-            maxBodyLength: Infinity,
-            url: BaseUrl+'/api/login/',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            data: data
-        };
-
-        axios.request(config)
-            .then((response) => {
-                console.log(JSON.stringify(response.data));
-                localStorage.setItem("Token", response.data.token);
-                setErr("Login success");
-                // Redirect to dashboard after successful login
-                window.location.href = "/dashboard";
-            })
-            .catch((error) => {
-                console.log(error);
-                // Handle the error response properly
-                if (error.response && error.response.data) {
-                    // If it's an object with error messages
-                    if (typeof error.response.data === 'object') {
-                        // Extract error messages from the object
-                        const errorMessages = Object.entries(error.response.data)
-                            .map(([field, message]) => `${field}: ${message}`)
-                            .join(', ');
-                        setErr(errorMessages);
-                    } else {
-                        // If it's already a string, use it directly
-                        setErr(error.response.data);
-                    }
-                } else {
-                    // Fallback error message
-                    setErr("Login failed. Please try again.");
-                }
+        try {
+            const response = await axios.post(`${BaseUrl}/api/login/`, {
+                username,
+                password,
             });
-
-    }
+            
+            localStorage.setItem("Token", response.data.token);
+            localStorage.setItem("user_id", response.data.user_id);
+            
+            setIsLoading(false);
+            // Navigate to dashboard
+            navigate("/dashboard");
+        } catch (err) {
+            setIsLoading(false);
+            if (err.response && err.response.data) {
+                // Handle object error response
+                if (typeof err.response.data === 'object') {
+                    const errorMessage = Object.values(err.response.data).flat().join(", ");
+                    setError(errorMessage || "Login failed. Please check your credentials.");
+                } else {
+                    setError(err.response.data || "Login failed. Please check your credentials.");
+                }
+            } else {
+                setError("Login failed. Please check your connection and try again.");
+            }
+        }
+    };
 
     return (
-        <div>
-            <h1>Login</h1>
-            <input type="text" placeholder="Username" onChange={usernameChangeHandler}/>
-            <input type="password" placeholder="Password" onChange={passwordChangeHandler}/>
-            <button onClick={login}>Login</button>
-            <p>{Err}</p>
+        <div className="auth-container">
+            <div className="auth-card">
+                <h2 className="auth-title">Login to Your Account</h2>
+                
+                {error && (
+                    <div className="alert alert-danger">{error}</div>
+                )}
+                
+                <form className="auth-form" onSubmit={handleSubmit}>
+                    <div className="form-group">
+                        <label htmlFor="username">Username</label>
+                        <input
+                            type="text"
+                            className="form-control"
+                            id="username"
+                            placeholder="Enter your username"
+                            value={username}
+                            onChange={(e) => setUsername(e.target.value)}
+                            required
+                        />
+                    </div>
+                    
+                    <div className="form-group">
+                        <label htmlFor="password">Password</label>
+                        <input
+                            type="password"
+                            className="form-control"
+                            id="password"
+                            placeholder="Enter your password"
+                            value={password}
+                            onChange={(e) => setPassword(e.target.value)}
+                            required
+                        />
+                    </div>
+                    
+                    <button 
+                        type="submit" 
+                        className="btn" 
+                        disabled={isLoading}
+                    >
+                        {isLoading ? "Logging in..." : "Login"}
+                    </button>
+                </form>
+                
+                <div className="auth-links">
+                    <p>Don't have an account? <Link to="/register">Register here</Link></p>
+                </div>
+            </div>
         </div>
     );
 }
